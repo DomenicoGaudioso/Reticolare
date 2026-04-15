@@ -1,0 +1,158 @@
+# app.py
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+
+from src import (
+    TRUSS_TYPES,
+    read_xlsx, write_xlsx, ensure_sheets,
+    generate_truss, solve_truss_opensees, results_to_sheets
+)
+
+st.set_page_config(page_title="Travi reticolari parametriche 2D — OpenSeesPy", layout="wide")
+
+st.title("Sistema di travi reticolari parametriche 2D (semplice appoggio)")
+st.caption("Genera Warren/Howe/Pratt/Nielsen/Paraboliche ecc. → modifica tabelle → analizza con OpenSeesPy")
+
+if "sheets" not in st.session_state:
+    st.session_state.sheets = ensure_sheets({})
+if "results" not in st.session_state:
+    st.session_state.results = None
+
+with st.sidebar:
+    st.header("Import/Export")
+    up = st.file_uploader("Carica input .xlsx", type=["xlsx"])
+    if up is not None:
+        st.session_state.sheets = ensure_sheets(read_xlsx(up.getvalue()))
+        st.session_state.results = None
+        st.success("XLSX caricato.")
+
+    st.divider()
+    st.header("Generatore parametrico")
+    ttype = st.selectbox("Tipologia", TRUSS_TYPES, index=0)
+    L = st.number_input("Lunghezza L", min_value=0.1, value=12.0, step=0.5)
+    H = st.number_input("Altezza H", min_value=0.1, value=2.0, step=0.1)
+    n_panels = st.number_input("Numero pannelli (interassi uguali)", min_value=1, value=8, step=1)
+    chord_A = st.number_input("Area correnti (A_chord)", min_value=1e-6, value=0.01, step=0.001, format="%.4f")
+    web_A = st.number_input("Area aste web (A_web)", min_value=1e-6, value=0.008, step=0.001, format="%.4f")
+    E = st.number_input("Modulo elastico E", min_value=1.0, value=210000.0, step=1000.0)
+
+    if st.button("Genera modello"):
+        st.session_state.sheets = generate_truss(ttype, L, H, int(n_panels), chord_A, web_A, E, load_case_id=1)
+        st.session_state.results = None
+        st.success("Modello generato. Puoi modificare le tabelle.")
+
+    st.divider()
+    st.header("Solve")
+    if st.button("Solve ▸ Linear Static (OpenSeesPy)"):
+        try:
+            st.session_state.results = solve_truss_opensees(st.session_state.sheets, load_case_id=1)
+            st.success("Analisi completata.")
+        except Exception as ex:
+            st.exception(ex)
+
+    st.divider()
+    st.header("Download")
+    out = st.session_state.sheets
+    if st.session_state.results is not None:
+        out = results_to_sheets(out, st.session_state.results)
+    xbytes = write_xlsx(out)
+    st.download_button("Scarica XLSX", data=xbytes, file_name="truss2d_parametric.xlsx")
+
+
+# --- main UI ---
+
+tabs = st.tabs(["nodes", "elements", "materials", "restraints", "node_loads", "results", "plot"])
+
+
+def edit_sheet(name: str, default_cols: list):
+    df = st.session_state.sheets.get(name, pd.DataFrame(columns=default_cols))
+    if df is None:
+        df = pd.DataFrame(columns=default_cols)
+    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True, key=f"edit_{name}")
+    st.session_state.sheets[name] = edited
+
+
+with tabs[0]:
+    st.subheader("nodes")
+    edit_sheet("nodes", ["id","x","y","chord"])
+
+with tabs[1]:
+    st.subheader("elements")
+    edit_sheet("elements", ["id","n1","n2","A","matTag","group"])
+
+with tabs[2]:
+    st.subheader("materials")
+    edit_sheet("materials", ["matTag","type","E"])
+
+with tabs[3]:
+    st.subheader("restraints")
+    edit_sheet("restraints", ["load_case_id","node_id","ux","uy"])
+
+with tabs[4]:
+    st.subheader("node_loads")
+    st.caption("Carichi nodali (truss: fx, fy).")
+    edit_sheet("node_loads", ["load_case_id","node_id","fx","fy"])
+
+with tabs[5]:
+    st.subheader("results")
+    if st.session_state.results is None:
+        st.info("Esegui Solve per vedere i risultati.")
+    else:
+        st.markdown("### results_nodal")
+        st.dataframe(st.session_state.results["results_nodal"], use_container_width=True)
+        st.markdown("### results_elements (axialForce)")
+        st.dataframe(st.session_state.results["results_elements"], use_container_width=True)
+
+with tabs[6]:
+    st.subheader("plot")
+    nodes = st.session_state.sheets.get("nodes", pd.DataFrame())
+    elems = st.session_state.sheets.get("elements", pd.DataFrame())
+
+    if nodes is None or nodes.empty or elems is None or elems.empty:
+        st.info("Genera o carica un modello.")
+    else:
+        nodes = nodes.copy()
+        nodes["id"] = nodes["id"].astype(int)
+        coords = {int(r["id"]):(float(r["x"]), float(r["y"])) for _, r in nodes.iterrows()}
+
+        fig = go.Figure()
+
+        # undeformed
+        for _, e in elems.iterrows():
+            n1 = int(e["n1"]); n2 = int(e["n2"])
+            if n1 not in coords or n2 not in coords:
+                continue
+            x1,y1 = coords[n1]; x2,y2 = coords[n2]
+            color = "#444"
+            grp = str(e.get("group",""))
+            if "chord" in grp:
+                color = "#111"
+            elif grp == "vert":
+                color = "#888"
+            fig.add_trace(go.Scatter(x=[x1,x2], y=[y1,y2], mode="lines", line=dict(color=color, width=2), showlegend=False))
+
+        # deformed
+        if st.session_state.results is not None:
+            scale = st.slider("Scala deformata", 0.0, 500.0, 50.0, 1.0)
+            disp = st.session_state.results["results_nodal"].set_index("node_id")
+            dcoords = {}
+            for nid,(x,y) in coords.items():
+                ux = float(disp.loc[nid, "ux"]) if nid in disp.index else 0.0
+                uy = float(disp.loc[nid, "uy"]) if nid in disp.index else 0.0
+                dcoords[nid] = (x + scale*ux, y + scale*uy)
+
+            for _, e in elems.iterrows():
+                n1 = int(e["n1"]); n2 = int(e["n2"])
+                if n1 not in dcoords or n2 not in dcoords:
+                    continue
+                x1,y1 = dcoords[n1]; x2,y2 = dcoords[n2]
+                fig.add_trace(go.Scatter(x=[x1,x2], y=[y1,y2], mode="lines", line=dict(color="#1f77b4", width=3), showlegend=False))
+
+        fig.update_layout(
+            xaxis=dict(scaleanchor="y", title="X"),
+            yaxis=dict(title="Y"),
+            margin=dict(l=10,r=10,t=10,b=10),
+            height=650
+        )
+        st.plotly_chart(fig, use_container_width=True)
