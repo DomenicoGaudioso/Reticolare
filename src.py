@@ -104,6 +104,9 @@ def generate_truss(
         truss_type = "Warren"
 
     n_panels = int(max(1, n_panels))
+    # Warren needs at least 4 panels to avoid singularity with end verticals
+    if truss_type == "Warren" and n_panels < 4:
+        n_panels = 4
     L = float(L)
     H = float(H)
 
@@ -158,35 +161,40 @@ def generate_truss(
         })
         eid += 1
 
-    # chords
+    # chords - Warren: bottom chord connects points where diagonals meet (not every panel)
+    if truss_type == "Warren":
+        for i in range(0, n_panels, 2):
+            if i + 2 <= n_panels:
+                add_ele(bottom_ids[i], bottom_ids[i + 2], chord_area, "chord_bottom")
+    else:
+        for i in range(n_panels):
+            add_ele(bottom_ids[i], bottom_ids[i + 1], chord_area, "chord_bottom")
     for i in range(n_panels):
-        add_ele(bottom_ids[i], bottom_ids[i + 1], chord_area, "chord_bottom")
         add_ele(top_ids[i], top_ids[i + 1], chord_area, "chord_top")
 
     # web patterns
     if truss_type == "Warren":
-        # Alternating diagonals, no verticals
-        for i in range(n_panels):
-            if i % 2 == 0:
-                add_ele(bottom_ids[i], top_ids[i + 1], web_area, "diag")
-            else:
-                add_ele(top_ids[i], bottom_ids[i + 1], web_area, "diag")
+        add_ele(bottom_ids[0], top_ids[0], web_area, "vert")
+        add_ele(bottom_ids[n_panels], top_ids[n_panels], web_area, "vert")
+        for i in range(0, n_panels - 1, 2):
+            add_ele(bottom_ids[i], top_ids[i + 1], web_area, "diag")
+            if i + 2 <= n_panels:
+                add_ele(top_ids[i + 1], bottom_ids[i + 2], web_area, "diag")
 
     elif truss_type == "Howe":
-        # Verticals at each panel point (internal) + diagonals sloping toward center
-        for i in range(1, n_panels):
+        # Verticals at each panel point (including ends) + diagonals sloping toward center
+        for i in range(n_panels + 1):
             add_ele(bottom_ids[i], top_ids[i], web_area, "vert")
         mid = n_panels / 2.0
         for i in range(n_panels):
-            # diagonals slope toward center: from bottom i to top i+1 on left half, and top i to bottom i+1 on right half
             if i < mid:
                 add_ele(bottom_ids[i], top_ids[i + 1], web_area, "diag")
             else:
                 add_ele(top_ids[i], bottom_ids[i + 1], web_area, "diag")
 
     elif truss_type == "Pratt":
-        # Verticals + diagonals sloping away from center
-        for i in range(1, n_panels):
+        # Verticals + diagonals sloping away from center (including ends)
+        for i in range(n_panels + 1):
             add_ele(bottom_ids[i], top_ids[i], web_area, "vert")
         mid = n_panels / 2.0
         for i in range(n_panels):
@@ -196,8 +204,8 @@ def generate_truss(
                 add_ele(bottom_ids[i], top_ids[i + 1], web_area, "diag")
 
     elif truss_type == "Diagonale doppia":
-        # Verticals + X bracing each panel
-        for i in range(1, n_panels):
+        # Verticals + X bracing each panel (including ends)
+        for i in range(n_panels + 1):
             add_ele(bottom_ids[i], top_ids[i], web_area, "vert")
         for i in range(n_panels):
             add_ele(bottom_ids[i], top_ids[i + 1], web_area, "diag")
@@ -242,8 +250,8 @@ def generate_truss(
 
     elif truss_type == "Nielsen":
         # Subdivided Pratt: diagonals in tension zones, longer diagonals toward midspan.
-        # Implementation: on left half, connect top i to bottom i+2 (skipping one); mirror on right.
-        for i in range(1, n_panels):
+        # Include end verticals
+        for i in range(n_panels + 1):
             add_ele(bottom_ids[i], top_ids[i], web_area, "vert")
         half = n_panels // 2
         # left fan
@@ -263,8 +271,8 @@ def generate_truss(
                 add_ele(top_ids[i], bottom_ids[i+1], web_area, "diag")
 
     elif truss_type in ("Parabolica", "Parabolica rovescia"):
-        # Parabolic chord (top for Parabolica, top for rovescia too but shaped), web like Pratt with verticals
-        for i in range(1, n_panels):
+        # Parabolic chord - include end verticals
+        for i in range(n_panels + 1):
             add_ele(bottom_ids[i], top_ids[i], web_area, "vert")
         mid = n_panels / 2.0
         for i in range(n_panels):
@@ -276,6 +284,7 @@ def generate_truss(
     elements_df = pd.DataFrame(elems)
 
     # Restraints: simple support at bottom ends
+    # Pin (incastro 2D) on left, Roller (appoggio) on right
     restraints_df = pd.DataFrame([
         {"load_case_id": int(load_case_id), "node_id": int(bottom_ids[0]), "ux": 1, "uy": 1},
         {"load_case_id": int(load_case_id), "node_id": int(bottom_ids[-1]), "ux": 0, "uy": 1},
