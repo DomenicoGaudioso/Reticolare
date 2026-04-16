@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reticolare 2D — Documentazione Tecnica</title>
+    <style>
+        :root {
+            --primary: #1a3a5c;
+            --accent: #2980b9;
+            --accent2: #27ae60;
+            --danger: #e74c3c;
+            --warn: #f39c12;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #dee2e6;
+            --text: #212529;
+            --text-light: #6c757d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .hero {
+            background: linear-gradient(135deg, #1a3a5c 0%, #2c5f8a 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--bg);
+            clip-path: ellipse(60% 100% at 50% 100%);
+        }
+        .hero h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .hero .subtitle { font-size: 1.2rem; opacity: 0.9; }
+        .badge {
+            display: inline-block;
+            background: var(--accent2);
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 10px 5px;
+        }
+        .badge.norm { background: var(--primary); }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        .toc {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        .toc h2 { color: var(--primary); font-size: 1.3rem; margin-bottom: 15px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
+        .toc ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+        .toc li a {
+            display: block;
+            padding: 10px 15px;
+            background: #f8fafc;
+            border-radius: 6px;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid var(--accent);
+        }
+        .toc li a:hover { background: var(--accent); color: white; }
+        section { margin-bottom: 40px; }
+        section h2 {
+            color: var(--primary);
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+        }
+        section h3 {
+            color: var(--accent);
+            font-size: 1.2rem;
+            margin: 20px 0 15px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
+        }
+        .card.info { border-left: 4px solid var(--accent); }
+        .card.success { border-left: 4px solid var(--accent2); }
+        .card.warning { border-left: 4px solid var(--warn); }
+        .card strong { color: var(--primary); }
+        ul, ol { margin-left: 25px; margin-bottom: 15px; }
+        li { margin-bottom: 8px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+        }
+        thead { background: var(--primary); color: white; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
+        tbody tr:nth-child(even) { background: #f8fafc; }
+        tbody tr:hover { background: #eef4fa; }
+        .formula-box {
+            background: #f4f6f9;
+            border-left: 4px solid var(--accent);
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .formula-box .label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .formula-box code {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: var(--primary);
+            display: block;
+        }
+        .svg-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .svg-container h4 { color: var(--primary); margin-bottom: 15px; }
+        code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; }
+        .footer {
+            background: var(--primary);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .footer p { font-size: 0.9rem; opacity: 0.8; }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.8rem; }
+            th, td { padding: 8px 10px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>Reticolare 2D</h1>
+        <p class="subtitle">Generatore parametrico di travi reticolari con solutore OpenSeesPy</p>
+        <div style="margin-top: 20px;">
+            <span class="badge">v1.0</span>
+            <span class="badge norm">NTC 2018</span>
+            <span class="badge norm">EC3</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <nav class="toc">
+            <h2>Indice dei Contenuti</h2>
+            <ul>
+                <li><a href="#panoramica">1. Panoramica Generale</a></li>
+                <li><a href="#funzionalita">2. Funzionalità Principali</a></li>
+                <li><a href="#input">3. Parametri di Input</a></li>
+                <li><a href="#output">4. Output Prodotti</a></li>
+                <li><a href="#normativa">5. Normativa di Riferimento</a></li>
+                <li><a href="#formule">6. Metodologia di Calcolo</a></li>
+                <li><a href="#esempio">7. Esempio di Utilizzo</a></li>
+                <li><a href="#geometria">8. Schema Geometrico</a></li>
+            </ul>
+        </nav>
+
+        <section id="panoramica">
+            <h2>1. Panoramica Generale</h2>
+            <div class="card info">
+                <p><strong>Reticolare 2D</strong> è un'applicazione web per la generazione parametrica di travi reticolari piane e la risoluzione mediante analisi statica lineare. L'applicazione permette di definire la geometria della trave, le proprietà dei materiali e i carichi, quindi esegue l'analisi strutturale utilizzando il motore di calcolo OpenSeesPy.</p>
+            </div>
+            <p>L'applicazione è sviluppata in Python con interfaccia Streamlit e permette l'esportazione dei risultati in formato Excel (.xlsx).</p>
+        </section>
+
+        <section id="funzionalita">
+            <h2>2. Funzionalità Principali</h2>
+            <ul>
+                <li><strong>Generazione parametrica automatica</strong> di travi reticolari 2D con diverse tipologie strutturali</li>
+                <li><strong>Modifica interattiva</strong> di nodi, elementi, materiali, vincoli e carichi tramite interfaccia tabellare</li>
+                <li><strong>Risoluzione statica lineare</strong> mediante OpenSeesPy</li>
+                <li><strong>Visualizzazione grafica</strong> della geometria e della deformata della struttura</li>
+                <li><strong>Esportazione Excel</strong> completa di input e risultati</li>
+            </ul>
+            <div class="card success">
+                <strong>Tipologie di travi reticolari supportate:</strong>
+                <ul style="margin-top:10px;">
+                    <li>Warren</li>
+                    <li>Howe</li>
+                    <li>Pratt</li>
+                    <li>Mohniè (K)</li>
+                    <li>Nielsen</li>
+                    <li>Parabolica</li>
+                    <li>Parabolica rovescia</li>
+                    <li>Diagonale doppia</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="input">
+            <h2>3. Parametri di Input</h2>
+            <h3>3.1 Parametri Geometrici</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parametro</th>
+                        <th>Tipo</th>
+                        <th>Descrizione</th>
+                        <th>Unità</th>
+                        <th>Valore default</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>truss_type</td><td>stringa</td><td>Tipologia di trave reticolare</td><td>-</td><td>Warren</td></tr>
+                    <tr><td>L</td><td>float</td><td>Luce della trave (distanza tra gli appoggi)</td><td>m</td><td>12.0</td></tr>
+                    <tr><td>H</td><td>float</td><td>Altezza della trave (distanza tra i correnti)</td><td>m</td><td>2.0</td></tr>
+                    <tr><td>n_panels</td><td>int</td><td>Numero di pannelli della reticolare</td><td>-</td><td>8</td></tr>
+                </tbody>
+            </table>
+
+            <h3>3.2 Proprietà Meccaniche</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parametro</th>
+                        <th>Tipo</th>
+                        <th>Descrizione</th>
+                        <th>Unità</th>
+                        <th>Valore default</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>chord_area</td><td>float</td><td>Area della sezione dei correnti (inferiori e superiori)</td><td>m²</td><td>0.01</td></tr>
+                    <tr><td>web_area</td><td>float</td><td>Area della sezione delle diagonali e montanti</td><td>m²</td><td>0.008</td></tr>
+                    <tr><td>E</td><td>float</td><td>Modulo di elasticità del materiale</td><td>MPa</td><td>210000.0</td></tr>
+                </tbody>
+            </table>
+
+            <h3>3.3 Carichi e Vincoli</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parametro</th>
+                        <th>Tipo</th>
+                        <th>Descrizione</th>
+                        <th>Unità</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>node_loads</td><td>DataFrame</td><td>Carichi nodali (fx, fy) applicati ai nodi</td><td>kN</td></tr>
+                    <tr><td>restraints</td><td>DataFrame</td><td>Vincoli nodali (pin/roller)</td><td>-</td></tr>
+                </tbody>
+            </table>
+            <div class="card info">
+                <strong>Configurazione vincoli predefinita:</strong>
+                <ul style="margin-top:10px;">
+                    <li>Nodo sinistro inferiore: <strong>incastro 2D</strong> (ux=1, uy=1)</li>
+                    <li>Nodo destro inferiore: <strong>appoggio</strong> (ux=0, uy=1)</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="output">
+            <h2>4. Output Prodotti</h2>
+            <h3>4.1 Risultati Nodali</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Campo</th>
+                        <th>Descrizione</th>
+                        <th>Unità</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>node_id</td><td>Identificatore del nodo</td><td>-</td></tr>
+                    <tr><td>ux</td><td>Spostamento in direzione X</td><td>m</td></tr>
+                    <tr><td>uy</td><td>Spostamento in direzione Y</td><td>m</td></tr>
+                    <tr><td>Rx</td><td>Reazione in direzione X</td><td>kN</td></tr>
+                    <tr><td>Ry</td><td>Reazione in direzione Y</td><td>kN</td></tr>
+                </tbody>
+            </table>
+
+            <h3>4.2 Risultati Elementali</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Campo</th>
+                        <th>Descrizione</th>
+                        <th>Unità</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>id</td><td>Identificatore dell'elemento</td><td>-</td></tr>
+                    <tr><td>n1, n2</td><td> nodi di estremità dell'elemento</td><td>-</td></tr>
+                    <tr><td>group</td><td>Gruppo funzionale (chord_bottom, chord_top, diag, vert)</td><td>-</td></tr>
+                    <tr><td>axialForce</td><td>Forza assiale nell'elemento</td><td>kN</td></tr>
+                    <tr><td>A</td><td>Area della sezione trasversale</td><td>m²</td></tr>
+                </tbody>
+            </table>
+
+            <h3>4.3 File Excel di Output</h3>
+            <p>Il file Excel generato contiene i seguenti fogli:</p>
+            <ul>
+                <li><code>nodes</code> — Coordinate nodali</li>
+                <li><code>elements</code> — Connettività e proprietà elementali</li>
+                <li><code>materials</code> — Proprietà meccaniche</li>
+                <li><code>load_cases</code> — Casi di carico</li>
+                <li><code>restraints</code> — Vincoli</li>
+                <li><code>node_loads</code> — Carichi nodali</li>
+                <li><code>results_nodal</code> — Risultati nodali</li>
+                <li><code>results_elements</code> — Risultati elementali</li>
+            </ul>
+        </section>
+
+        <section id="normativa">
+            <h2>5. Normativa di Riferimento</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Normativa</th>
+                        <th>Ambito</th>
+                        <th>Riferimento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>NTC 2018</td><td>Norme Tecniche per le Costruzioni (Italia)</td><td>D.M. 17/01/2018</td></tr>
+                    <tr><td>EC3</td><td>Eurocodice 3 — Progettazione delle strutture in acciaio</td><td>EN 1993-1-1:2005</td></tr>
+                    <tr><td>SIA 262</td><td>Strutture in acciaio (Svizzera)</td><td>SIA 262:2021</td></tr>
+                </tbody>
+            </table>
+            <div class="card warning">
+                <strong>Nota:</strong> L'applicazione esegue esclusivamente analisi statica lineare. Le verifiche di resistenza e stabilità (instabilità flessotorsionale, fatica, ecc.) devono essere eseguite manualmente secondo la normativa applicabile.
+            </div>
+        </section>
+
+        <section id="formule">
+            <h2>6. Metodologia di Calcolo</h2>
+            <p>L'analisi strutturale utilizza il metodo degli spostamenti (metodo della rigidità) implementato nel solutore OpenSeesPy.</p>
+
+            <div class="formula-box">
+                <div class="label">Equazione di equilibrio</div>
+                <code>K · u = F</code>
+            </div>
+            <p>dove <strong>K</strong> è la matrice di rigidità globale della struttura, <strong>u</strong> è il vettore degli spostamenti nodali incogniti e <strong>F</strong> è il vettore dei carichi nodali equivalenti.</p>
+
+            <div class="formula-box">
+                <div class="label">Rigidezza assiale elemento truss (2 nodi)</div>
+                <code>k = (E · A / L) · [ 1 -1 ; -1 1 ]</code>
+            </div>
+
+            <div class="formula-box">
+                <div class="label">Forza assiale nell'elemento</div>
+                <code>N = (E · A / L) · (u₂ - u₁)</code>
+            </div>
+
+            <p>I risultati includono gli spostamenti nodali e le forze assiali in каждом elemento, da cui è possibile ricavare le sollecitazioni (N, M, V) e verificare la resistenza della struttura.</p>
+        </section>
+
+        <section id="esempio">
+            <h2>7. Esempio di Utilizzo</h2>
+            <p>Di seguito un esempio di generazione di una trave reticolare di tipo Pratt con 6 pannelli:</p>
+
+            <div class="formula-box">
+                <div class="label">Chiamata Python</div>
+                <code>from src import generate_truss, solve_truss_opensees
+
+sheets = generate_truss(
+    truss_type="Pratt",
+    L=10.0,
+    H=2.0,
+    n_panels=6,
+    chord_area=0.01,
+    web_area=0.008,
+    E=210000.0
+)
+
+results = solve_truss_opensees(sheets, load_case_id=1)</code>
+            </div>
+
+            <p>La chiamata genera automaticamente:</p>
+            <ul>
+                <li>14 nodi (7 inferiori + 7 superiori)</li>
+                <li>7+6+6 = 19 elementi (corrente inferiore, superiore, diagonali, montanti)</li>
+                <li>Vincoli: pin a sinistra, roller a destra</li>
+                <li>Carico verticale di 10 kN applicato al nodo centrale superiore</li>
+            </ul>
+            <p>I risultati contengono gli spostamenti e le forze assiali per ogni nodo ed elemento.</p>
+        </section>
+
+        <section id="geometria">
+            <h2>8. Schema Geometrico</h2>
+            <p>Diagramma schematico di una trave reticolare di tipo Pratt con indicazione dei nodi e degli elementi:</p>
+
+            <div class="svg-container">
+                <h4>Trave reticolare tipo Pratt — Schema geometrico</h4>
+                <svg width="700" height="280" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Sfondo -->
+                    <rect width="700" height="280" fill="#f8fafc"/>
+                    
+                    <!-- Griglia -->
+                    <defs>
+                        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#e9ecef" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+                    <rect width="700" height="280" fill="url(#grid)"/>
+
+                    <!-- Corrente inferiore (blu) -->
+                    <line x1="60" y1="220" x2="640" y2="220" stroke="#1f77b4" stroke-width="4"/>
+                    <text x="340" y="245" font-family="Segoe UI" font-size="12" fill="#1f77b4" text-anchor="middle">chord_bottom</text>
+
+                    <!-- Corrente superiore (arancione) -->
+                    <line x1="60" y1="80" x2="640" y2="80" stroke="#ff7f0e" stroke-width="4"/>
+                    <text x="340" y="65" font-family="Segoe UI" font-size="12" fill="#ff7f0e" text-anchor="middle">chord_top</text>
+
+                    <!-- Montanti (viola) -->
+                    <line x1="108" y1="80" x2="108" y2="220" stroke="#9467bd" stroke-width="3"/>
+                    <line x1="207" y1="80" x2="207" y2="220" stroke="#9467bd" stroke-width="3"/>
+                    <line x1="306" y1="80" x2="306" y2="220" stroke="#9467bd" stroke-width="3"/>
+                    <line x1="405" y1="80" x2="405" y2="220" stroke="#9467bd" stroke-width="3"/>
+                    <line x1="504" y1="80" x2="504" y2="220" stroke="#9467bd" stroke-width="3"/>
+                    <line x1="603" y1="80" x2="603" y2="220" stroke="#9467bd" stroke-width="3"/>
+
+                    <!-- Diagonali (verde) - Pratt: diagonali che vanno verso il centro -->
+                    <line x1="108" y1="220" x2="207" y2="80" stroke="#2ca02c" stroke-width="2" stroke-dasharray="6,3"/>
+                    <line x1="207" y1="220" x2="306" y2="80" stroke="#2ca02c" stroke-width="2" stroke-dasharray="6,3"/>
+                    <line x1="603" y1="220" x2="504" y2="80" stroke="#2ca02c" stroke-width="2" stroke-dasharray="6,3"/>
+                    <line x1="504" y1="220" x2="405" y2="80" stroke="#2ca02c" stroke-width="2" stroke-dasharray="6,3"/>
+
+                    <!-- Nodi inferiori (cerchi) -->
+                    <circle cx="60" cy="220" r="6" fill="#1a3a5c"/>
+                    <circle cx="108" cy="220" r="6" fill="#1a3a5c"/>
+                    <circle cx="207" cy="220" r="6" fill="#1a3a5c"/>
+                    <circle cx="306" cy="220" r="6" fill="#1a3a5c"/>
+                    <circle cx="405" cy="220" r="6" fill="#1a3a5c"/>
+                    <circle cx="504" cy="220" r="6" fill="#1a3a5c"/>
+                    <circle cx="603" cy="220" r="6" fill="#1a3a5c"/>
+                    <circle cx="640" cy="220" r="6" fill="#1a3a5c"/>
+
+                    <!-- Nodi superiori (cerchi) -->
+                    <circle cx="60" cy="80" r="6" fill="#1a3a5c"/>
+                    <circle cx="108" cy="80" r="6" fill="#1a3a5c"/>
+                    <circle cx="207" cy="80" r="6" fill="#1a3a5c"/>
+                    <circle cx="306" cy="80" r="6" fill="#1a3a5c"/>
+                    <circle cx="405" cy="80" r="6" fill="#1a3a5c"/>
+                    <circle cx="504" cy="80" r="6" fill="#1a3a5c"/>
+                    <circle cx="603" cy="80" r="6" fill="#1a3a5c"/>
+                    <circle cx="640" cy="80" r="6" fill="#1a3a5c"/>
+
+                    <!-- Etichette nodi -->
+                    <text x="60" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">1</text>
+                    <text x="108" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">2</text>
+                    <text x="207" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">3</text>
+                    <text x="306" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">4</text>
+                    <text x="405" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">5</text>
+                    <text x="504" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">6</text>
+                    <text x="603" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">7</text>
+                    <text x="640" y="240" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">8</text>
+
+                    <text x="60" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">9</text>
+                    <text x="108" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">10</text>
+                    <text x="207" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">11</text>
+                    <text x="306" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">12</text>
+                    <text x="405" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">13</text>
+                    <text x="504" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">14</text>
+                    <text x="603" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">15</text>
+                    <text x="640" y="70" font-family="Segoe UI" font-size="10" fill="#6c757d" text-anchor="middle">16</text>
+
+                    <!-- Vincoli -->
+                    <!-- Pin (triangolo rosso) a sinistra -->
+                    <polygon points="60,235 50,250 70,250" fill="#e74c3c"/>
+                    <text x="60" y="258" font-family="Segoe UI" font-size="10" fill="#e74c3c" text-anchor="middle">PIN</text>
+
+                    <!-- Roller (cerchio blu) a destra -->
+                    <circle cx="640" cy="235" r="8" fill="#2980b9"/>
+                    <text x="640" y="258" font-family="Segoe UI" font-size="10" fill="#2980b9" text-anchor="middle">ROLLER</text>
+
+                    <!-- Carico -->
+                    <line x1="306" y1="60" x2="306" y2="30" stroke="#f39c12" stroke-width="2" marker-end="url(#arrow)"/>
+                    <polygon points="306,30 296,45 316,45" fill="#f39c12"/>
+                    <text x="330" y="45" font-family="Segoe UI" font-size="11" fill="#f39c12">F = 10 kN</text>
+
+                    <!-- Dimensioni -->
+                    <line x1="20" y1="80" x2="20" y2="220" stroke="#1a3a5c" stroke-width="1"/>
+                    <line x1="15" y1="80" x2="25" y2="80" stroke="#1a3a5c" stroke-width="1"/>
+                    <line x1="15" y1="220" x2="25" y2="220" stroke="#1a3a5c" stroke-width="1"/>
+                    <text x="30" y="155" font-family="Segoe UI" font-size="11" fill="#1a3a5c" text-anchor="start">H</text>
+
+                    <line x1="60" y1="270" x2="640" y2="270" stroke="#1a3a5c" stroke-width="1"/>
+                    <line x1="60" y1="265" x2="60" y2="275" stroke="#1a3a5c" stroke-width="1"/>
+                    <line x1="640" y1="265" x2="640" y2="275" stroke="#1a3a5c" stroke-width="1"/>
+                    <text x="350" y="268" font-family="Segoe UI" font-size="11" fill="#1a3a5c" text-anchor="middle">L</text>
+
+                    <!-- Legenda -->
+                    <rect x="460" y="160" width="150" height="95" fill="white" stroke="#dee2e6" rx="5"/>
+                    <text x="470" y="175" font-family="Segoe UI" font-size="10" fill="#1a3a5c" font-weight="bold">Legenda:</text>
+                    <line x1="475" y1="188" x2="500" y2="188" stroke="#1f77b4" stroke-width="3"/>
+                    <text x="510" y1="192" font-family="Segoe UI" font-size="9" fill="#212529">Corrente inf.</text>
+                    <line x1="475" y1="203" x2="500" y2="203" stroke="#ff7f0e" stroke-width="3"/>
+                    <text x="510" y1="207" font-family="Segoe UI" font-size="9" fill="#212529">Corrente sup.</text>
+                    <line x1="475" y1="218" x2="500" y2="218" stroke="#2ca02c" stroke-width="2" stroke-dasharray="4,2"/>
+                    <text x="510" y1="222" font-family="Segoe UI" font-size="9" fill="#212529">Diagonale</text>
+                    <line x1="475" y1="233" x2="500" y2="233" stroke="#9467bd" stroke-width="2"/>
+                    <text x="510" y1="237" font-family="Segoe UI" font-size="9" fill="#212529">Montante</text>
+                    <circle cx="487" cy="248" r="4" fill="#1a3a5c"/>
+                    <text x="510" y1="252" font-family="Segoe UI" font-size="9" fill="#212529">Nodo</text>
+                </svg>
+            </div>
+
+            <div class="card info">
+                <strong>Legenda dello schema:</strong>
+                <ul style="margin-top:10px;">
+                    <li><span style="color:#1f77b4;font-weight:bold;">━</span> Corrente inferiore (chord_bottom)</li>
+                    <li><span style="color:#ff7f0e;font-weight:bold;">━</span> Corrente superiore (chord_top)</li>
+                    <li><span style="color:#2ca02c;font-weight:bold;">- -</span> Diagonale (diag)</li>
+                    <li><span style="color:#9467bd;font-weight:bold;">┃</span> Montante (vert)</li>
+                    <li>● Nodo di struttura</li>
+                    <li>▲ Vincolo a pin (incastro 2D)</li>
+                    <li>○ Vincolo a rullo (appoggio)</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <p><strong>Reticolare 2D — Documentazione Tecnica</strong></p>
+        <p style="margin-top:10px;">L'applicazione esegue analisi statica lineare. Le verifiche di resistenza e stabilità devono essere eseguite separatamente secondo la normativa applicabile (NTC 2018, EC3, SIA 262). L'autore non assume responsabilità per l'uso dei risultati.</p>
+        <p style="margin-top:15px;opacity:0.6;">© 2026 — Generato automaticamente</p>
+    </footer>
+</body>
+</html>
